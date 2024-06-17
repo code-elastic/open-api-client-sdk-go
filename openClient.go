@@ -4,8 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/code-elastic/open-api-client-sdk-go/utils"
+	"math/rand"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 )
 
 type OpenClient struct {
@@ -15,6 +19,17 @@ type OpenClient struct {
 	Timestamp string
 	Sign      string
 	Parameter string
+}
+
+func NewOpenClient(appKey string, appSecret string) *OpenClient {
+	return &OpenClient{
+		appKey:    appKey,
+		appSecret: appSecret,
+	}
+}
+
+func (oc OpenClient) GenerateSign(parameter string) string {
+	return utils.GenSign(parameter, oc.appSecret)
 }
 
 type GetNameByGetResponseData struct {
@@ -63,6 +78,7 @@ type GetNameByPostResponseData struct {
 }
 
 func (oc OpenClient) GetNameByPost(name string) {
+
 	// 创建要发送的 JSON 数据
 	data := GetNameByPostRequestData{Name: name}
 	jsonData, err := json.Marshal(data)
@@ -78,6 +94,11 @@ func (oc OpenClient) GetNameByPost(name string) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("appKey", oc.appKey)
+	req.Header.Set("parameters", string(jsonData))
+	req.Header.Set("timestamp", strconv.FormatInt(time.Now().Unix(), 10)) // 设置时间戳
+	req.Header.Set("nonce", strconv.Itoa(rand.Int()))                     // 设置随机数Nonce
+	req.Header.Set("sign", oc.GenerateSign(string(jsonData)))             // 设置随机数Nonce
 
 	// 使用 http.Client 发送请求
 	client := &http.Client{}
